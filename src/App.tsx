@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import electricMusic from './audio/Electric.mp3'
 
 type PieceType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L'
 
@@ -105,10 +106,7 @@ function App() {
     getRandomPiece()
   )
 
-  // HOLD piece.
   const [holdPiece, setHoldPiece] = useState<Piece | null>(null)
-
-  // Controls whether the player can hold the current piece.
   const [canHold, setCanHold] = useState(true)
 
   const [pieceRow, setPieceRow] = useState(0)
@@ -121,6 +119,10 @@ function App() {
   const [score, setScore] = useState(0)
   const [lines, setLines] = useState(0)
   const [lineFlash, setLineFlash] = useState(false)
+
+  // Music state
+  const [musicPlaying, setMusicPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const canMoveTo = (
     shape: number[][],
@@ -261,24 +263,23 @@ function App() {
     // Generate a new NEXT piece.
     setNextPiece(getRandomPiece())
 
-    // Reset the new piece to the top.
+    // Move the new piece to the top.
     setPieceRow(0)
     setPieceColumn(3)
 
-    // The player can HOLD again for the new piece.
+    // Allow HOLD again.
     setCanHold(true)
   }
 
-  // HOLD mechanic.
+  // HOLD mechanic
   const holdCurrentPiece = () => {
-    // Prevent multiple holds during the same turn.
     if (!canHold) {
       return
     }
 
     if (holdPiece === null) {
-      // First HOLD:
-      // Store the current piece and bring in NEXT.
+      // First hold:
+      // Store CURRENT and bring in NEXT.
       setHoldPiece(currentPiece)
       setCurrentPiece(nextPiece)
       setNextPiece(getRandomPiece())
@@ -290,14 +291,14 @@ function App() {
       setCurrentPiece(swappedPiece)
     }
 
-    // Every held piece starts from the top.
     setPieceRow(0)
     setPieceColumn(3)
 
-    // Prevent another HOLD until this piece locks.
+    // Prevent another hold until this piece locks.
     setCanHold(false)
   }
 
+  // Hard drop
   const hardDrop = () => {
     const ghostRow = getGhostRow()
 
@@ -305,7 +306,27 @@ function App() {
     lockCurrentPiece(ghostRow)
   }
 
-  // Automatic falling.
+  // MUSIC ON / OFF
+  const toggleMusic = async () => {
+    if (!audioRef.current) {
+      return
+    }
+
+    if (musicPlaying) {
+      audioRef.current.pause()
+      setMusicPlaying(false)
+      return
+    }
+
+    try {
+      await audioRef.current.play()
+      setMusicPlaying(true)
+    } catch (error) {
+      console.error('Unable to play music:', error)
+    }
+  }
+
+  // Automatic falling
   useEffect(() => {
     const gameTimer = setInterval(() => {
       if (
@@ -332,7 +353,7 @@ function App() {
     lockedBoard,
   ])
 
-  // Keyboard controls.
+  // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'ArrowLeft') {
@@ -403,7 +424,6 @@ function App() {
         hardDrop()
       }
 
-      // C = HOLD.
       if (event.key.toLowerCase() === 'c') {
         holdCurrentPiece()
       }
@@ -494,6 +514,13 @@ function App() {
         lineFlash ? 'line-clear-flash' : ''
       }`}
     >
+      {/* Music */}
+      <audio
+        ref={audioRef}
+        src={electricMusic}
+        loop
+      />
+
       <div className="scanlines"></div>
 
       <header className="game-header">
@@ -507,6 +534,7 @@ function App() {
       </header>
 
       <section className="game-layout">
+        {/* LEFT PANEL */}
         <aside className="side-panel left-panel">
           <div className="info-box">
             <h2>HOLD</h2>
@@ -565,6 +593,7 @@ function App() {
           </div>
         </aside>
 
+        {/* GAME BOARD */}
         <div className="board-container">
           <div className="board">
             {board.map((cell, index) => (
@@ -590,6 +619,7 @@ function App() {
           </div>
         </div>
 
+        {/* RIGHT PANEL */}
         <aside className="side-panel right-panel">
           <div className="info-box">
             <h2>NEXT</h2>
@@ -665,9 +695,19 @@ function App() {
         </aside>
       </section>
 
+      {/* FOOTER */}
       <footer className="game-footer">
         <span>◈ SYSTEM ONLINE</span>
-        <span>◈ PRESS START</span>
+
+        <button
+          className="music-button"
+          onClick={toggleMusic}
+        >
+          {musicPlaying
+            ? '◈ MUSIC ON'
+            : '◈ MUSIC OFF'}
+        </button>
+
         <span>◈ LEVEL 01</span>
       </footer>
     </main>

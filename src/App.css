@@ -283,6 +283,33 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.music-button {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #00ffff;
+  background: transparent;
+  border: 1px solid #00ffff;
+  padding: 8px 14px;
+  cursor: pointer;
+  text-shadow: 0 0 8px #00ffff;
+  box-shadow:
+    0 0 8px rgba(0, 255, 255, 0.4),
+    inset 0 0 8px rgba(0, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.music-button:hover {
+  color: #ffffff;
+  border-color: #ff00ff;
+  text-shadow:
+    0 0 8px #ff00ff,
+    0 0 15px #ff00ff;
+  box-shadow:
+    0 0 12px rgba(255, 0, 255, 0.6),
+    inset 0 0 12px rgba(255, 0, 255, 0.12);
+}
+
 }
 
 
