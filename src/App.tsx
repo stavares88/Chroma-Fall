@@ -105,6 +105,12 @@ function App() {
     getRandomPiece()
   )
 
+  // HOLD piece.
+  const [holdPiece, setHoldPiece] = useState<Piece | null>(null)
+
+  // Controls whether the player can hold the current piece.
+  const [canHold, setCanHold] = useState(true)
+
   const [pieceRow, setPieceRow] = useState(0)
   const [pieceColumn, setPieceColumn] = useState(3)
 
@@ -255,8 +261,41 @@ function App() {
     // Generate a new NEXT piece.
     setNextPiece(getRandomPiece())
 
+    // Reset the new piece to the top.
     setPieceRow(0)
     setPieceColumn(3)
+
+    // The player can HOLD again for the new piece.
+    setCanHold(true)
+  }
+
+  // HOLD mechanic.
+  const holdCurrentPiece = () => {
+    // Prevent multiple holds during the same turn.
+    if (!canHold) {
+      return
+    }
+
+    if (holdPiece === null) {
+      // First HOLD:
+      // Store the current piece and bring in NEXT.
+      setHoldPiece(currentPiece)
+      setCurrentPiece(nextPiece)
+      setNextPiece(getRandomPiece())
+    } else {
+      // Swap CURRENT and HOLD.
+      const swappedPiece = holdPiece
+
+      setHoldPiece(currentPiece)
+      setCurrentPiece(swappedPiece)
+    }
+
+    // Every held piece starts from the top.
+    setPieceRow(0)
+    setPieceColumn(3)
+
+    // Prevent another HOLD until this piece locks.
+    setCanHold(false)
   }
 
   const hardDrop = () => {
@@ -266,7 +305,7 @@ function App() {
     lockCurrentPiece(ghostRow)
   }
 
-  // Automatic falling
+  // Automatic falling.
   useEffect(() => {
     const gameTimer = setInterval(() => {
       if (
@@ -285,9 +324,15 @@ function App() {
     return () => {
       clearInterval(gameTimer)
     }
-  }, [currentPiece, nextPiece, pieceRow, pieceColumn, lockedBoard])
+  }, [
+    currentPiece,
+    nextPiece,
+    pieceRow,
+    pieceColumn,
+    lockedBoard,
+  ])
 
-  // Keyboard controls
+  // Keyboard controls.
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'ArrowLeft') {
@@ -298,7 +343,9 @@ function App() {
             pieceColumn - 1
           )
         ) {
-          setPieceColumn((currentColumn) => currentColumn - 1)
+          setPieceColumn(
+            (currentColumn) => currentColumn - 1
+          )
         }
       }
 
@@ -310,7 +357,9 @@ function App() {
             pieceColumn + 1
           )
         ) {
-          setPieceColumn((currentColumn) => currentColumn + 1)
+          setPieceColumn(
+            (currentColumn) => currentColumn + 1
+          )
         }
       }
 
@@ -322,7 +371,9 @@ function App() {
             pieceColumn
           )
         ) {
-          setPieceRow((currentRow) => currentRow + 1)
+          setPieceRow(
+            (currentRow) => currentRow + 1
+          )
         } else {
           lockCurrentPiece()
         }
@@ -351,14 +402,32 @@ function App() {
         event.preventDefault()
         hardDrop()
       }
+
+      // C = HOLD.
+      if (event.key.toLowerCase() === 'c') {
+        holdCurrentPiece()
+      }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener(
+      'keydown',
+      handleKeyDown
+    )
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener(
+        'keydown',
+        handleKeyDown
+      )
     }
-  }, [currentPiece, pieceRow, pieceColumn, lockedBoard])
+  }, [
+    currentPiece,
+    pieceRow,
+    pieceColumn,
+    lockedBoard,
+    holdPiece,
+    canHold,
+  ])
 
   const ghostRow = getGhostRow()
 
@@ -379,7 +448,8 @@ function App() {
           boardColumn >= 0 &&
           boardColumn < 10
         ) {
-          const boardIndex = boardRow * 10 + boardColumn
+          const boardIndex =
+            boardRow * 10 + boardColumn
 
           if (!board[boardIndex].filled) {
             board[boardIndex] = {
@@ -397,7 +467,8 @@ function App() {
     row.forEach((cell, columnIndex) => {
       if (cell === 1) {
         const boardRow = pieceRow + rowIndex
-        const boardColumn = pieceColumn + columnIndex
+        const boardColumn =
+          pieceColumn + columnIndex
 
         if (
           boardRow >= 0 &&
@@ -405,7 +476,8 @@ function App() {
           boardColumn >= 0 &&
           boardColumn < 10
         ) {
-          const boardIndex = boardRow * 10 + boardColumn
+          const boardIndex =
+            boardRow * 10 + boardColumn
 
           board[boardIndex] = {
             filled: true,
@@ -417,12 +489,20 @@ function App() {
   })
 
   return (
-    <main className={`game ${lineFlash ? 'line-clear-flash' : ''}`}>
+    <main
+      className={`game ${
+        lineFlash ? 'line-clear-flash' : ''
+      }`}
+    >
       <div className="scanlines"></div>
 
       <header className="game-header">
-        <p className="subtitle">NEON ARCADE SYSTEM</p>
+        <p className="subtitle">
+          NEON ARCADE SYSTEM
+        </p>
+
         <h1>CHROMA FALL</h1>
+
         <div className="header-line"></div>
       </header>
 
@@ -430,11 +510,53 @@ function App() {
         <aside className="side-panel left-panel">
           <div className="info-box">
             <h2>HOLD</h2>
-            <div className="preview-box"></div>
+
+            <div className="preview-box">
+              {holdPiece && (
+                <div
+                  className="mini-piece"
+                  style={{
+                    gridTemplateColumns: `repeat(
+                      ${holdPiece.shape[0].length},
+                      1fr
+                    )`,
+                    gridTemplateRows: `repeat(
+                      ${holdPiece.shape.length},
+                      1fr
+                    )`,
+                  }}
+                >
+                  {holdPiece.shape.flatMap(
+                    (row, rowIndex) =>
+                      row.map(
+                        (cell, columnIndex) => (
+                          <div
+                            key={`${rowIndex}-${columnIndex}`}
+                            className="mini-cell"
+                            style={
+                              cell === 1
+                                ? {
+                                    backgroundColor:
+                                      holdPiece.color,
+                                    boxShadow: `
+                                      0 0 4px ${holdPiece.color},
+                                      0 0 8px ${holdPiece.color}
+                                    `,
+                                  }
+                                : undefined
+                            }
+                          ></div>
+                        )
+                      )
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="info-box controls">
             <h2>CONTROLS</h2>
+
             <p>← → MOVE</p>
             <p>↑ ROTATE</p>
             <p>↓ DROP</p>
@@ -447,7 +569,9 @@ function App() {
           <div className="board">
             {board.map((cell, index) => (
               <div
-                className={`cell ${cell.filled ? 'piece' : ''}`}
+                className={`cell ${
+                  cell.filled ? 'piece' : ''
+                }`}
                 key={index}
                 style={
                   cell.filled
@@ -474,28 +598,38 @@ function App() {
               <div
                 className="mini-piece"
                 style={{
-                  gridTemplateColumns: `repeat(${nextPiece.shape[0].length}, 1fr)`,
-                  gridTemplateRows: `repeat(${nextPiece.shape.length}, 1fr)`,
+                  gridTemplateColumns: `repeat(
+                    ${nextPiece.shape[0].length},
+                    1fr
+                  )`,
+                  gridTemplateRows: `repeat(
+                    ${nextPiece.shape.length},
+                    1fr
+                  )`,
                 }}
               >
-                {nextPiece.shape.flatMap((row, rowIndex) =>
-                  row.map((cell, columnIndex) => (
-                    <div
-                      key={`${rowIndex}-${columnIndex}`}
-                      className="mini-cell"
-                      style={
-                        cell === 1
-                          ? {
-                              backgroundColor: nextPiece.color,
-                              boxShadow: `
-                                0 0 4px ${nextPiece.color},
-                                0 0 8px ${nextPiece.color}
-                              `,
-                            }
-                          : undefined
-                      }
-                    ></div>
-                  ))
+                {nextPiece.shape.flatMap(
+                  (row, rowIndex) =>
+                    row.map(
+                      (cell, columnIndex) => (
+                        <div
+                          key={`${rowIndex}-${columnIndex}`}
+                          className="mini-cell"
+                          style={
+                            cell === 1
+                              ? {
+                                  backgroundColor:
+                                    nextPiece.color,
+                                  boxShadow: `
+                                    0 0 4px ${nextPiece.color},
+                                    0 0 8px ${nextPiece.color}
+                                  `,
+                                }
+                              : undefined
+                          }
+                        ></div>
+                      )
+                    )
                 )}
               </div>
             </div>
@@ -504,20 +638,27 @@ function App() {
           <div className="stats">
             <div className="stat">
               <span>SCORE</span>
+
               <strong>
-                {score.toString().padStart(6, '0')}
+                {score
+                  .toString()
+                  .padStart(6, '0')}
               </strong>
             </div>
 
             <div className="stat">
               <span>LEVEL</span>
+
               <strong>01</strong>
             </div>
 
             <div className="stat">
               <span>LINES</span>
+
               <strong>
-                {lines.toString().padStart(3, '0')}
+                {lines
+                  .toString()
+                  .padStart(3, '0')}
               </strong>
             </div>
           </div>
